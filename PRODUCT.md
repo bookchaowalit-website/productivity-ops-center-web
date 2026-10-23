@@ -28,11 +28,14 @@ A portfolio visitor who wants to see a calm procedure UI: one runbook, one focus
 ## Live URL and deploy state
 
 - Live: https://ops.bookchaowalit.com (HTTP 200 on 2026-10-23).
-- The Vercel project `bookchaowalit-ops-center-frontend` is linked to this repository
-  (`bookchaowalit-website/productivity-ops-center-web`, branch `main`), so every push to `main` deploys to production.
-  The Next 16.4.2 security patch (f34b749) deployed by Git on 2026-10-23.
-- `NEXT_PUBLIC_SENTRY_DSN` is set on the Vercel project (Sentry project `productivity-ops-center-web`, org
-  `personal-yu0`).
+- The Vercel project `bookchaowalit-ops-center-frontend` is linked to this repository (`bookchaowalit-website/productivity-ops-center-web`, branch `main`), so every
+  push to `main` deploys to production. Last production deploy: the Next 16.4.2 security patch (f34b749), by Git on
+  2026-10-23.
+- The L2 commits (lib/tests/Sentry/CI/docs) pushed on 2026-10-23 did not deploy: Vercel answered "Deployment rate
+  limited — retry in 24 hours" (free-plan limit of 100 deployments per day). The live site shows the patch build
+  until the next deploy of `main` after the quota resets.
+- `NEXT_PUBLIC_SENTRY_DSN` is set on the Vercel project (Sentry project `productivity-ops-center-web`, org `personal-yu0`); it takes effect
+  with that next deploy.
 
 ## Boundaries
 
