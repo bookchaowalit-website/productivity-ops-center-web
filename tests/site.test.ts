@@ -27,6 +27,15 @@ describe("site metadata", () => {
     expect(sitemap()[0].url).toBe("https://preview.example.com");
   });
 
+  it("falls back to the default origin when NEXT_PUBLIC_SITE_URL is empty or blank", async () => {
+    for (const url of ["", "   "]) {
+      const { robots, sitemap, metadata } = await loadWith(url);
+      expect(robots().sitemap).toBe("https://ops.bookchaowalit.com/sitemap.xml");
+      expect(sitemap()[0].url).toBe("https://ops.bookchaowalit.com");
+      expect(String(metadata.metadataBase)).toBe("https://ops.bookchaowalit.com/");
+    }
+  });
+
   it("redirects the old /more-projects page to the main site", async () => {
     expect(await nextConfig.redirects!()).toContainEqual({ source: "/more-projects", destination: "https://bookchaowalit.com/", permanent: true });
   });

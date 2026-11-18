@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkStep, findRunbook, resetRunbook, runbooks, statusLabel } from "@/lib/ops";
+import { checkStep, findRunbook, nextOpenStep, resetRunbook, restoredStep, runbooks, statusLabel } from "@/lib/ops";
 
 const release = findRunbook("release");
 
@@ -55,5 +55,20 @@ describe("resetRunbook and statusLabel", () => {
   it("is clear to close only when every step is checked", () => {
     expect(statusLabel(3, 4)).toBe("In progress");
     expect(statusLabel(4, 4)).toBe("Clear to close");
+  });
+});
+
+describe("restoredStep", () => {
+  const release = findRunbook("release");
+  it("keeps the saved step while it is open", () => {
+    expect(restoredStep([0], release, 1)).toBe(1);
+  });
+  it("moves on to the next open step when the saved one is checked, wrapping round", () => {
+    expect(restoredStep([0, 1], release, 1)).toBe(2);
+    expect(restoredStep([1, 2, 3], release, 3)).toBe(0);
+  });
+  it("stays put when every step is checked", () => {
+    expect(restoredStep([0, 1, 2, 3], release, 2)).toBe(2);
+    expect(nextOpenStep([0, 1, 2, 3], release, 2)).toBe(2);
   });
 });

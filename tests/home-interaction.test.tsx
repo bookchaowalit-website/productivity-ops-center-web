@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Home from "@/app/page";
 import { StepList } from "@/components/runbook";
+import { findRunbook } from "@/lib/ops";
 
 // Mounted tests for Ops Center on the App shell: choose a runbook, check steps, reset with Undo.
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -139,6 +140,25 @@ describe("review fixes", () => {
     press(button("Undo"));
     expect(pills()).toEqual(["Checked", "To do", "Checked", "To do"]);
     expect(count("Release checklist")).toBe("2/4 steps checked");
+  });
+
+  it("Undo lands on an open step when the saved step was checked after the reset", () => {
+    press(primary()); // check step 1; the card moves to step 2
+    press(reset()); // saves step 2 (index 1) as the place to return to
+    press(primary()); // check step 1 again
+    press(primary()); // check step 2, the saved step
+    press(button("Undo"));
+    expect(pills()).toEqual(["Checked", "Checked", "To do", "To do"]);
+    expect($("#focus-title")!.textContent).toBe(findRunbook("release").steps[2].label);
+    expect(primary().disabled).toBe(false);
+    expect(primary().textContent).toBe("Check and move on");
+  });
+
+  it("Undo keeps the saved step when it is still open", () => {
+    press(primary());
+    press(reset());
+    press(button("Undo"));
+    expect($("#focus-title")!.textContent).toBe(findRunbook("release").steps[1].label);
   });
 
   it("choosing a step row moves focus to the card title and scrolls the card into view", () => {

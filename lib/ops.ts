@@ -34,10 +34,21 @@ export function findRunbook(id: string): Runbook {
 export function checkStep(completed: Completed, runbook: Runbook, stepIndex: number): { completed: Completed; stepIndex: number } {
   const finished = completed[runbook.id] ?? [];
   const next = Array.from(new Set([...finished, stepIndex])).sort((x, y) => x - y);
-  const isOpen = (index: number) => !next.includes(index);
-  const after = runbook.steps.findIndex((_, index) => index > stepIndex && isOpen(index));
+  return { completed: { ...completed, [runbook.id]: next }, stepIndex: nextOpenStep(next, runbook, stepIndex) };
+}
+
+// The first open step after `from`, wrapping round to the first open step before it; `from` when none is open.
+export function nextOpenStep(finished: number[], runbook: Runbook, from: number): number {
+  const isOpen = (index: number) => !finished.includes(index);
+  const after = runbook.steps.findIndex((_, index) => index > from && isOpen(index));
   const open = after === -1 ? runbook.steps.findIndex((_, index) => isOpen(index)) : after;
-  return { completed: { ...completed, [runbook.id]: next }, stepIndex: open === -1 ? stepIndex : open };
+  return open === -1 ? from : open;
+}
+
+// Where to land after Undo: the step saved with the reset while it is still open, else the next open one,
+// so the primary button never comes back as a disabled "Step checked" while steps are left.
+export function restoredStep(finished: number[], runbook: Runbook, saved: number): number {
+  return finished.includes(saved) ? nextOpenStep(finished, runbook, saved) : saved;
 }
 
 export function resetRunbook(completed: Completed, runbook: Runbook): Completed {

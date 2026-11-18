@@ -4,7 +4,7 @@ import { type MouseEvent, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { AppFoot, AppTop, ListButton, Pill } from "@/components/app-shell";
 import { StepList } from "@/components/runbook";
-import { type Completed, checkStep, findRunbook, resetRunbook as clearRunbook, runbooks, statusLabel } from "@/lib/ops";
+import { type Completed, checkStep, findRunbook, resetRunbook as clearRunbook, restoredStep, runbooks, statusLabel } from "@/lib/ops";
 
 const SOURCE = "https://github.com/bookchaowalit-website/productivity-ops-center-web";
 
@@ -87,14 +87,13 @@ export default function Home() {
   function restore() {
     if (!undo) return;
     // Undo reverses only the resets: keep any step checked since, alongside the ones each reset cleared.
-    setCompleted((current) => {
-      const next = { ...current };
-      for (const entry of undo.resets) next[entry.runbookId] = Array.from(new Set([...entry.steps, ...(next[entry.runbookId] ?? [])])).sort((x, y) => x - y);
-      return next;
-    });
+    const next = { ...completed };
+    for (const entry of undo.resets) next[entry.runbookId] = Array.from(new Set([...entry.steps, ...(next[entry.runbookId] ?? [])])).sort((x, y) => x - y);
+    setCompleted(next);
     const last = undo.resets[undo.resets.length - 1];
     setRunbookId(last.runbookId);
-    setStepIndex(last.stepIndex);
+    // The saved step may have been checked after the reset; land on an open step instead.
+    setStepIndex(restoredStep(next[last.runbookId], findRunbook(last.runbookId), last.stepIndex));
     setUndo(null);
     setToastFocused(false);
     const restored = new Set(undo.resets.map((entry) => entry.runbookId)).size;
