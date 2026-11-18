@@ -225,3 +225,6 @@
 .as-lists button { position: relative; }
 /* On the focused (selected-tint) row the grey pill tint vanishes; lift it onto the surface colour. */
 .as-step[aria-current="step"] .as-pill[data-tone="grey"] { background: var(--as-surface); }
+/* The focus card title takes programmatic focus when a step row is chosen; scroll-margin keeps it clear of
+   the sticky top bar. */
+.as-focus { scroll-margin-top: 64px; }

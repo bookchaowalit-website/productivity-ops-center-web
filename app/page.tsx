@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState } from "react";
 import { AppFoot, AppTop, ListButton, Pill } from "@/components/app-shell";
 import { StepList } from "@/components/runbook";
 import { type Completed, checkStep, findRunbook, resetRunbook as clearRunbook, runbooks, statusLabel } from "@/lib/ops";
 
 const SOURCE = "https://github.com/bookchaowalit-website/productivity-ops-center-web";
 
-type UndoState = { runbookId: string; steps: number[]; stepIndex: number };
+// fromKeyboard: only a keyboard-initiated reset moves focus to Undo; a pointer reset leaves focus alone so
+// the 8-second countdown starts.
+type UndoState = { runbookId: string; steps: number[]; stepIndex: number; fromKeyboard: boolean };
 
 export default function Home() {
   const [runbookId, setRunbookId] = useState("release");
@@ -21,6 +23,9 @@ export default function Home() {
   const resetRef = useRef<HTMLButtonElement>(null);
   // Reset is disabled until the restored checks render, so focus it after that render, not inline.
   const focusResetNext = useRef(false);
+  const focusTitleRef = useRef<HTMLHeadingElement>(null);
+  // Set when a step row is chosen directly: the card sits above the list, so bring it to the person.
+  const focusCardNext = useRef(false);
 
   const runbook = findRunbook(runbookId);
   const finished = completed[runbook.id] ?? [];
@@ -31,7 +36,16 @@ export default function Home() {
   const clear = total > 0 && finished.length >= total;
   const percent = total ? Math.round((finished.length / total) * 100) : 0;
 
-  useEffect(() => { if (undo) undoRef.current?.focus(); }, [undo]);
+  useEffect(() => { if (undo?.fromKeyboard) undoRef.current?.focus(); }, [undo]);
+  useEffect(() => {
+    if (!focusCardNext.current) return;
+    focusCardNext.current = false;
+    const title = focusTitleRef.current;
+    if (!title) return;
+    title.focus({ preventScroll: true });
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    title.closest("section")?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
+  }, [stepIndex]);
   useEffect(() => {
     if (!focusResetNext.current) return;
     focusResetNext.current = false;
@@ -45,6 +59,10 @@ export default function Home() {
   }, [undo, toastFocused]);
 
   function chooseRunbook(id: string) { setRunbookId(id); setStepIndex(0); }
+  function chooseStep(index: number) {
+    focusCardNext.current = true;
+    setStepIndex(index);
+  }
   function markNext() {
     const next = checkStep(completed, runbook, stepIndex);
     setCompleted(next.completed);
@@ -52,15 +70,17 @@ export default function Home() {
     const left = total - (next.completed[runbook.id]?.length ?? 0);
     setAnnouncement(left ? `Step checked. Next: ${runbook.steps[next.stepIndex].label}.` : "Final step checked. Clear to close.");
   }
-  function resetRunbook() {
-    setUndo({ runbookId: runbook.id, steps: finished, stepIndex });
+  function resetRunbook(event: MouseEvent<HTMLButtonElement>) {
+    // detail is 0 for a click synthesised from Enter or Space, at least 1 for a mouse or touch click.
+    setUndo({ runbookId: runbook.id, steps: finished, stepIndex, fromKeyboard: event.detail === 0 });
     setCompleted(clearRunbook(completed, runbook));
     setStepIndex(0);
     setAnnouncement(`${runbook.name} reset. Undo is available for a few seconds.`);
   }
   function restore() {
     if (!undo) return;
-    setCompleted((current) => ({ ...current, [undo.runbookId]: undo.steps }));
+    // Undo reverses only the reset: keep any step checked since, alongside the ones the reset cleared.
+    setCompleted((current) => ({ ...current, [undo.runbookId]: Array.from(new Set([...undo.steps, ...(current[undo.runbookId] ?? [])])).sort((x, y) => x - y) }));
     setRunbookId(undo.runbookId);
     setStepIndex(undo.stepIndex);
     setUndo(null);
@@ -113,7 +133,7 @@ export default function Home() {
             {step ? (
               <>
                 <p className="as-eyebrow">Step {stepIndex + 1} of {total} · {step.duration}</p>
-                <h2 id="focus-title">{step.label}</h2>
+                <h2 id="focus-title" ref={focusTitleRef} tabIndex={-1}>{step.label}</h2>
                 <p>{step.instruction}</p>
                 <div className="as-focus-actions">
                   <button ref={primaryRef} type="button" className={isDone ? "as-button is-done" : "as-button"} onClick={markNext} disabled={isDone}>
@@ -129,7 +149,7 @@ export default function Home() {
 
           <section aria-labelledby="steps-title">
             <h2 className="as-section-title" id="steps-title">Steps</h2>
-            <StepList steps={runbook.steps} finished={finished} focused={stepIndex} onFocus={setStepIndex} />
+            <StepList steps={runbook.steps} finished={finished} focused={stepIndex} onFocus={chooseStep} />
           </section>
 
           <section className="as-card as-progress-card" aria-label="Runbook status">

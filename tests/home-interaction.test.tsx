@@ -13,7 +13,8 @@ let root: Root;
 let host: HTMLDivElement;
 const $ = <T extends Element = HTMLElement>(selector: string) => host.querySelector(selector) as T | null;
 const button = (text: string, scope: ParentNode = host) => [...scope.querySelectorAll("button")].find((b) => b.textContent?.trim().startsWith(text)) as HTMLButtonElement;
-const press = (el: Element) => act(() => { el.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
+// detail 0 = a keyboard-synthesised click (Enter/Space); 1 = mouse or touch.
+const press = (el: Element, detail = 0) => act(() => { el.dispatchEvent(new MouseEvent("click", { bubbles: true, detail })); });
 const primary = () => $<HTMLButtonElement>(".as-focus .as-button")!;
 const reset = () => button("Reset runbook");
 const pills = () => [...host.querySelectorAll(".as-step .as-pill")].map((p) => p.textContent);
@@ -125,6 +126,58 @@ describe("reset and undo", () => {
     act(() => { $(".as-toast")!.dispatchEvent(new FocusEvent("focusin", { bubbles: true })); });
     act(() => { vi.advanceTimersByTime(9000); });
     expect($(".as-toast")).not.toBeNull();
+  });
+});
+
+describe("review fixes", () => {
+  it("Undo reverses only the reset and keeps steps checked after it", () => {
+    press(primary());
+    press(reset());
+    press(host.querySelectorAll(".as-step")[2]);
+    press(primary());
+    expect(pills()).toEqual(["To do", "To do", "Checked", "To do"]);
+    press(button("Undo"));
+    expect(pills()).toEqual(["Checked", "To do", "Checked", "To do"]);
+    expect(count("Release checklist")).toBe("2/4 steps checked");
+  });
+
+  it("choosing a step row moves focus to the card title and scrolls the card into view", () => {
+    const scroll = vi.fn();
+    (HTMLElement.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = scroll;
+    press(host.querySelectorAll(".as-step")[3]);
+    expect(document.activeElement).toBe($("#focus-title"));
+    expect($("#focus-title")!.textContent).toBe("Write the rollback");
+    expect(scroll).toHaveBeenCalledTimes(1);
+    expect(scroll.mock.contexts[0]).toBe($(".as-focus"));
+    expect(scroll.mock.calls[0][0]).toMatchObject({ block: "nearest" });
+    // Check and move on advances the card without stealing focus from the button.
+    press(host.querySelectorAll(".as-step")[0]);
+    primary().focus();
+    press(primary());
+    expect(document.activeElement).toBe(primary());
+    expect(scroll).toHaveBeenCalledTimes(2);
+  });
+
+  it("uses an instant scroll when the person prefers reduced motion", () => {
+    const scroll = vi.fn();
+    (HTMLElement.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = scroll;
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({ matches: query.includes("reduce"), media: query })) as unknown as typeof window.matchMedia;
+    press(host.querySelectorAll(".as-step")[1]);
+    expect(scroll.mock.calls[0][0]).toMatchObject({ behavior: "auto" });
+    window.matchMedia = original;
+  });
+
+  it("a pointer reset leaves focus alone so the toast counts down", () => {
+    vi.useFakeTimers();
+    press(primary());
+    const resetButton = reset();
+    resetButton.focus();
+    press(resetButton, 1);
+    expect($(".as-toast")).not.toBeNull();
+    expect(document.activeElement?.textContent).not.toBe("Undo");
+    act(() => { vi.advanceTimersByTime(8000); });
+    expect($(".as-toast")).toBeNull();
   });
 });
 
