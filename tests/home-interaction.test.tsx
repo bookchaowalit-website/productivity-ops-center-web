@@ -223,17 +223,10 @@ describe("review fixes, round 2", () => {
     expect(scroll).toHaveBeenCalledTimes(1);
   });
 
-  it("announces the next step only when focus actually moves", () => {
-    press(host.querySelectorAll(".as-step")[3]);
+  it("announces the step focus actually moves to", () => {
+    press(host.querySelectorAll(".as-step")[1]);
     press(primary());
-    expect(host.textContent).toContain("Checked Write the rollback. 3 steps still open.");
-    expect(host.textContent).not.toContain("Next: Write the rollback");
-    press(host.querySelectorAll(".as-step")[2]);
-    press(primary());
-    expect(host.textContent).toContain("Checked Open the preview. 2 steps still open.");
-    press(host.querySelectorAll(".as-step")[0]);
-    press(primary());
-    expect(host.textContent).toContain("Step checked. Next: Run the narrow check.");
+    expect(host.textContent).toContain("Step checked. Next: Open the preview.");
   });
 });
 
@@ -271,6 +264,36 @@ describe("review fixes, round 3", () => {
     const { readFileSync } = await import("node:fs");
     expect(readFileSync("app/app-shell.css", "utf8")).toMatch(/#procedure \{ scroll-margin-top: 64px; \}/);
     expect($("main#procedure")).not.toBeNull();
+  });
+});
+
+describe("review fixes, round 4", () => {
+  it("checking a later step first wraps back to the earlier open steps; only all-done disables", () => {
+    press(host.querySelectorAll(".as-step")[3]);
+    expect(primary().textContent).toBe("Check and move on");
+    press(primary());
+    expect($("#focus-title")!.textContent).toBe("Read the diff");
+    expect(host.textContent).toContain("Step checked. Next: Read the diff.");
+    press(host.querySelectorAll(".as-step")[2]);
+    press(primary());
+    expect($("#focus-title")!.textContent).toBe("Read the diff");
+    expect(primary().disabled).toBe(false);
+    press(primary());
+    expect($("#focus-title")!.textContent).toBe("Run the narrow check");
+    expect(primary().textContent).toBe("Check final step");
+    press(primary());
+    expect(primary().disabled).toBe(true);
+    expect(host.textContent).toContain("All steps checked. Clear to close.");
+  });
+
+  it("the Undo toast sits right after the card buttons, so Tab goes on to the step list", () => {
+    press(primary());
+    press(reset());
+    const toast = $(".as-toast")!;
+    expect(toast.previousElementSibling).toBe($(".as-focus-actions"));
+    const focusable = [...host.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")];
+    const undoIndex = focusable.indexOf(button("Undo"));
+    expect(focusable[undoIndex + 1]).toBe(host.querySelector(".as-step"));
   });
 });
 

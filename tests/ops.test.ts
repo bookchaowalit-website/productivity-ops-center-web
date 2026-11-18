@@ -18,16 +18,21 @@ describe("checkStep", () => {
     expect(next.stepIndex).toBe(1);
   });
 
-  it("keeps focus on the final step and does not duplicate checks", () => {
+  it("wraps from the last step to the first open one and does not duplicate checks", () => {
     let state = checkStep({}, release, 3);
-    expect(state.stepIndex).toBe(3);
+    expect(state.stepIndex).toBe(0);
     state = checkStep(state.completed, release, 3);
     expect(state.completed.release).toEqual([3]);
   });
 
-  it("skips steps that are already checked, and stays put when no open step follows", () => {
+  it("stays put only when every step is checked", () => {
+    expect(checkStep({ release: [0, 1, 2] }, release, 3).stepIndex).toBe(3);
+  });
+
+  it("skips steps that are already checked and wraps to an open step before", () => {
     expect(checkStep({ release: [1, 2] }, release, 0).stepIndex).toBe(3);
-    expect(checkStep({ release: [3] }, release, 2).stepIndex).toBe(2);
+    expect(checkStep({ release: [3] }, release, 2).stepIndex).toBe(0);
+    expect(checkStep({ release: [0, 3] }, release, 2).stepIndex).toBe(1);
   });
 
   it("keeps checks sorted and leaves other runbooks untouched", () => {

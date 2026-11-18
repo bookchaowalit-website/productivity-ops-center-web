@@ -37,7 +37,8 @@ export default function Home() {
   const total = runbook.steps.length;
   const step = runbook.steps[stepIndex] ?? runbook.steps[0];
   const isDone = finished.includes(stepIndex);
-  const isLast = stepIndex === total - 1;
+  // The focused step is the only one still open, so checking it closes the runbook.
+  const isLast = !isDone && finished.length === total - 1;
   const clear = total > 0 && finished.length >= total;
   const percent = total ? Math.round((finished.length / total) * 100) : 0;
 
@@ -72,9 +73,8 @@ export default function Home() {
     setCompleted(next.completed);
     setStepIndex(next.stepIndex);
     const left = total - (next.completed[runbook.id]?.length ?? 0);
-    if (!left) setAnnouncement("All steps checked. Clear to close.");
-    else if (next.stepIndex !== stepIndex) setAnnouncement(`Step checked. Next: ${runbook.steps[next.stepIndex].label}.`);
-    else setAnnouncement(`Checked ${step.label}. ${left} ${left === 1 ? "step" : "steps"} still open.`);
+    // checkStep always moves to an open step while one is left, so "Next" is always true here.
+    setAnnouncement(left ? `Step checked. Next: ${runbook.steps[next.stepIndex].label}.` : "All steps checked. Clear to close.");
   }
   function resetRunbook(event: MouseEvent<HTMLButtonElement>) {
     // detail is 0 for a click synthesised from Enter or Space, at least 1 for a mouse or touch click.
@@ -156,6 +156,20 @@ export default function Home() {
                   </button>
                   <button ref={resetRef} type="button" className="as-plain as-danger" onClick={resetRunbook} disabled={finished.length === 0}>Reset runbook</button>
                 </div>
+                {/* In the DOM right after the buttons (shown fixed at the bottom), so Tab from Undo goes on to the steps. */}
+                {undo ? (
+                  <div
+                    className="as-toast"
+                    role="group"
+                    aria-label="Undo reset"
+                    onFocus={() => setToastFocused(true)}
+                    onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setToastFocused(false); }}
+                    onKeyDown={(event) => { if (event.key === "Escape") dismiss(); }}
+                  >
+                    <span>{undoLabel(undo.resets)}</span>
+                    <button ref={undoRef} type="button" className="as-plain" onClick={restore}>Undo</button>
+                  </div>
+                ) : null}
               </>
             ) : (
               <div className="as-empty"><strong id="focus-title">Nothing to run</strong>This runbook has no steps yet.</div>
@@ -187,19 +201,6 @@ export default function Home() {
       <AppFoot source={SOURCE} />
 
       <p className="as-sr" role="status" aria-live="polite">{announcement}</p>
-      {undo ? (
-        <div
-          className="as-toast"
-          role="group"
-          aria-label="Undo reset"
-          onFocus={() => setToastFocused(true)}
-          onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setToastFocused(false); }}
-          onKeyDown={(event) => { if (event.key === "Escape") dismiss(); }}
-        >
-          <span>{undoLabel(undo.resets)}</span>
-          <button ref={undoRef} type="button" className="as-plain" onClick={restore}>Undo</button>
-        </div>
-      ) : null}
     </div>
   );
 }
