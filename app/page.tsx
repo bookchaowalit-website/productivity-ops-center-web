@@ -1,6 +1,7 @@
 "use client";
 
 import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { AppFoot, AppTop, ListButton, Pill } from "@/components/app-shell";
 import { StepList } from "@/components/runbook";
 import { type Completed, checkStep, findRunbook, resetRunbook as clearRunbook, runbooks, statusLabel } from "@/lib/ops";
@@ -58,7 +59,8 @@ export default function Home() {
   // A step row was chosen directly: the card sits above the list, so bring it to the person. The title
   // element stays mounted across steps, so focus and scroll right here, even when the row was already selected.
   function chooseStep(index: number) {
-    setStepIndex(index);
+    // Render the new step first, so a screen reader reads the new title when focus lands on it.
+    flushSync(() => setStepIndex(index));
     const title = focusTitleRef.current;
     if (!title) return;
     title.focus({ preventScroll: true });
@@ -95,13 +97,16 @@ export default function Home() {
     setStepIndex(last.stepIndex);
     setUndo(null);
     setToastFocused(false);
-    setAnnouncement(undo.resets.length > 1 ? `${undo.resets.length} runbooks restored.` : "Runbook restored.");
+    const restored = new Set(undo.resets.map((entry) => entry.runbookId)).size;
+    setAnnouncement(restored > 1 ? `${restored} runbooks restored.` : "Runbook restored.");
     focusResetNext.current = true;
   }
   function dismiss() {
     setUndo(null);
     setToastFocused(false);
-    primaryRef.current?.focus();
+    // The primary button is disabled once the focused step is checked; never drop focus on the body.
+    const target = [primaryRef.current, resetRef.current].find((el) => el && !el.disabled) ?? focusTitleRef.current;
+    target?.focus();
   }
 
   return (

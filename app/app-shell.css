@@ -229,3 +229,5 @@
 /* The focus card title takes programmatic focus when a step row is chosen; scroll-margin keeps it clear of
    the sticky top bar. */
 .as-focus { scroll-margin-top: 64px; }
+/* The skip link target lands below the sticky top bar, not under it. */
+#procedure { scroll-margin-top: 64px; }

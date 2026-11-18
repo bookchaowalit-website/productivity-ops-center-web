@@ -237,6 +237,43 @@ describe("review fixes, round 2", () => {
   });
 });
 
+describe("review fixes, round 3", () => {
+  it("focus lands on the card title after it shows the chosen step", () => {
+    const read: string[] = [];
+    $("#focus-title")!.addEventListener("focus", (event) => read.push((event.target as HTMLElement).textContent ?? ""));
+    press(host.querySelectorAll(".as-step")[2]);
+    expect(read).toEqual(["Open the preview"]);
+    expect(document.activeElement?.textContent).toBe("Open the preview");
+  });
+
+  it("Escape on the toast falls back to Reset when the primary button is disabled", () => {
+    press(primary());
+    press(reset(), 1);
+    for (let i = 0; i < 4; i += 1) press(primary());
+    expect(primary().disabled).toBe(true);
+    act(() => { $(".as-toast")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+    expect($(".as-toast")).toBeNull();
+    expect(document.activeElement).toBe(reset());
+  });
+
+  it("counts restored runbooks, not resets, when one runbook was reset twice", () => {
+    press(primary());
+    press(reset(), 1);
+    press(primary());
+    press(reset(), 1);
+    expect($(".as-toast span")!.textContent).toBe("Release checklist reset");
+    press(button("Undo"));
+    expect(host.textContent).toContain("Runbook restored.");
+    expect(host.textContent).not.toContain("2 runbooks restored.");
+  });
+
+  it("the skip-link target clears the sticky top bar", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("app/app-shell.css", "utf8")).toMatch(/#procedure \{ scroll-margin-top: 64px; \}/);
+    expect($("main#procedure")).not.toBeNull();
+  });
+});
+
 describe("StepList", () => {
   it("shows an empty state when a runbook has no steps", () => {
     const html = renderToString(<StepList steps={[]} finished={[]} focused={0} onFocus={() => {}} />);
