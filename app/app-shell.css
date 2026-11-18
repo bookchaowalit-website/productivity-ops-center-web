@@ -231,3 +231,6 @@
 .as-focus { scroll-margin-top: 64px; }
 /* The skip link target lands below the sticky top bar, not under it. */
 #procedure { scroll-margin-top: 64px; }
+
+/* The top bar is sticky: keep skip-link targets and keyboard-focused controls clear of it when the page scrolls to them. */
+html { scroll-padding-top: 64px; scroll-padding-bottom: 16px; }
