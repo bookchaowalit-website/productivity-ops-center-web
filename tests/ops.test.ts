@@ -25,6 +25,11 @@ describe("checkStep", () => {
     expect(state.completed.release).toEqual([3]);
   });
 
+  it("skips steps that are already checked, and stays put when no open step follows", () => {
+    expect(checkStep({ release: [1, 2] }, release, 0).stepIndex).toBe(3);
+    expect(checkStep({ release: [3] }, release, 2).stepIndex).toBe(2);
+  });
+
   it("keeps checks sorted and leaves other runbooks untouched", () => {
     const state = checkStep({ release: [2], review: [0] }, release, 0);
     expect(state.completed).toEqual({ release: [0, 2], review: [0] });

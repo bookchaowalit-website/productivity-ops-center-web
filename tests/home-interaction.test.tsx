@@ -66,7 +66,7 @@ describe("checking steps", () => {
     expect(primary().textContent).toBe("Step checked");
     expect(primary().disabled).toBe(true);
     expect(host.textContent).toContain("Clear to close");
-    expect(host.textContent).toContain("Final step checked. Clear to close.");
+    expect(host.textContent).toContain("All steps checked. Clear to close.");
     expect($('[role="progressbar"]')!.getAttribute("aria-valuenow")).toBe("100");
   });
 
@@ -178,6 +178,62 @@ describe("review fixes", () => {
     expect(document.activeElement?.textContent).not.toBe("Undo");
     act(() => { vi.advanceTimersByTime(8000); });
     expect($(".as-toast")).toBeNull();
+  });
+});
+
+describe("review fixes, round 2", () => {
+  it("resetting two runbooks keeps both restorable; one Undo restores both", () => {
+    press(primary());
+    press(reset(), 1);
+    press(button("Weekly review", $(".as-side")!));
+    press(primary());
+    press(primary());
+    press(reset(), 1);
+    expect($(".as-toast span")!.textContent).toBe("Reset 2 runbooks");
+    press(button("Undo"));
+    expect(count("Release checklist")).toBe("1/4 steps checked");
+    expect(count("Weekly review")).toBe("2/3 steps checked");
+    expect($("h1")!.textContent).toBe("Weekly review");
+    expect(host.textContent).toContain("2 runbooks restored.");
+  });
+
+  it("each reset restarts the 8-second countdown", () => {
+    vi.useFakeTimers();
+    press(primary());
+    press(reset(), 1);
+    act(() => { vi.advanceTimersByTime(6000); });
+    press(button("Content handoff", $(".as-side")!));
+    press(primary());
+    press(reset(), 1);
+    act(() => { vi.advanceTimersByTime(6000); });
+    expect($(".as-toast")).not.toBeNull();
+    act(() => { vi.advanceTimersByTime(2000); });
+    expect($(".as-toast")).toBeNull();
+  });
+
+  it("clicking the already-selected row still brings the card into view, and leaves nothing pending", () => {
+    const scroll = vi.fn();
+    (HTMLElement.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = scroll;
+    press(host.querySelectorAll(".as-step")[0]);
+    expect(document.activeElement).toBe($("#focus-title"));
+    expect(scroll).toHaveBeenCalledTimes(1);
+    primary().focus();
+    press(primary());
+    expect(document.activeElement).toBe(primary());
+    expect(scroll).toHaveBeenCalledTimes(1);
+  });
+
+  it("announces the next step only when focus actually moves", () => {
+    press(host.querySelectorAll(".as-step")[3]);
+    press(primary());
+    expect(host.textContent).toContain("Checked Write the rollback. 3 steps still open.");
+    expect(host.textContent).not.toContain("Next: Write the rollback");
+    press(host.querySelectorAll(".as-step")[2]);
+    press(primary());
+    expect(host.textContent).toContain("Checked Open the preview. 2 steps still open.");
+    press(host.querySelectorAll(".as-step")[0]);
+    press(primary());
+    expect(host.textContent).toContain("Step checked. Next: Run the narrow check.");
   });
 });
 

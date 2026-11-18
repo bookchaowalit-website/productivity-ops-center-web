@@ -7,9 +7,15 @@ import { type Completed, checkStep, findRunbook, resetRunbook as clearRunbook, r
 
 const SOURCE = "https://github.com/bookchaowalit-website/productivity-ops-center-web";
 
-// fromKeyboard: only a keyboard-initiated reset moves focus to Undo; a pointer reset leaves focus alone so
-// the 8-second countdown starts.
-type UndoState = { runbookId: string; steps: number[]; stepIndex: number; fromKeyboard: boolean };
+// Every reset that has not expired stays restorable: Undo restores them all. fromKeyboard: only a
+// keyboard-initiated reset moves focus to Undo; a pointer reset leaves focus alone so the countdown starts.
+type ResetEntry = { runbookId: string; steps: number[]; stepIndex: number };
+type UndoState = { resets: ResetEntry[]; fromKeyboard: boolean };
+
+function undoLabel(resets: ResetEntry[]): string {
+  const ids = new Set(resets.map((entry) => entry.runbookId));
+  return ids.size > 1 ? `Reset ${ids.size} runbooks` : `${findRunbook(resets[0].runbookId).name} reset`;
+}
 
 export default function Home() {
   const [runbookId, setRunbookId] = useState("release");
@@ -24,8 +30,6 @@ export default function Home() {
   // Reset is disabled until the restored checks render, so focus it after that render, not inline.
   const focusResetNext = useRef(false);
   const focusTitleRef = useRef<HTMLHeadingElement>(null);
-  // Set when a step row is chosen directly: the card sits above the list, so bring it to the person.
-  const focusCardNext = useRef(false);
 
   const runbook = findRunbook(runbookId);
   const finished = completed[runbook.id] ?? [];
@@ -38,20 +42,12 @@ export default function Home() {
 
   useEffect(() => { if (undo?.fromKeyboard) undoRef.current?.focus(); }, [undo]);
   useEffect(() => {
-    if (!focusCardNext.current) return;
-    focusCardNext.current = false;
-    const title = focusTitleRef.current;
-    if (!title) return;
-    title.focus({ preventScroll: true });
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    title.closest("section")?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
-  }, [stepIndex]);
-  useEffect(() => {
     if (!focusResetNext.current) return;
     focusResetNext.current = false;
     resetRef.current?.focus();
   }, [completed]);
-  // The toast closes after 8 s, but never while it holds focus (that would drop a keyboard user).
+  // The toast closes after 8 s (restarting on each reset, since each one makes a new undo object), but never
+  // while it holds focus (that would drop a keyboard user).
   useEffect(() => {
     if (!undo || toastFocused) return;
     const timer = window.setTimeout(() => setUndo(null), 8000);
@@ -59,33 +55,47 @@ export default function Home() {
   }, [undo, toastFocused]);
 
   function chooseRunbook(id: string) { setRunbookId(id); setStepIndex(0); }
+  // A step row was chosen directly: the card sits above the list, so bring it to the person. The title
+  // element stays mounted across steps, so focus and scroll right here, even when the row was already selected.
   function chooseStep(index: number) {
-    focusCardNext.current = true;
     setStepIndex(index);
+    const title = focusTitleRef.current;
+    if (!title) return;
+    title.focus({ preventScroll: true });
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    title.closest("section")?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
   }
   function markNext() {
     const next = checkStep(completed, runbook, stepIndex);
     setCompleted(next.completed);
     setStepIndex(next.stepIndex);
     const left = total - (next.completed[runbook.id]?.length ?? 0);
-    setAnnouncement(left ? `Step checked. Next: ${runbook.steps[next.stepIndex].label}.` : "Final step checked. Clear to close.");
+    if (!left) setAnnouncement("All steps checked. Clear to close.");
+    else if (next.stepIndex !== stepIndex) setAnnouncement(`Step checked. Next: ${runbook.steps[next.stepIndex].label}.`);
+    else setAnnouncement(`Checked ${step.label}. ${left} ${left === 1 ? "step" : "steps"} still open.`);
   }
   function resetRunbook(event: MouseEvent<HTMLButtonElement>) {
     // detail is 0 for a click synthesised from Enter or Space, at least 1 for a mouse or touch click.
-    setUndo({ runbookId: runbook.id, steps: finished, stepIndex, fromKeyboard: event.detail === 0 });
+    const entry = { runbookId: runbook.id, steps: finished, stepIndex };
+    setUndo((current) => ({ resets: [...(current?.resets ?? []), entry], fromKeyboard: event.detail === 0 }));
     setCompleted(clearRunbook(completed, runbook));
     setStepIndex(0);
     setAnnouncement(`${runbook.name} reset. Undo is available for a few seconds.`);
   }
   function restore() {
     if (!undo) return;
-    // Undo reverses only the reset: keep any step checked since, alongside the ones the reset cleared.
-    setCompleted((current) => ({ ...current, [undo.runbookId]: Array.from(new Set([...undo.steps, ...(current[undo.runbookId] ?? [])])).sort((x, y) => x - y) }));
-    setRunbookId(undo.runbookId);
-    setStepIndex(undo.stepIndex);
+    // Undo reverses only the resets: keep any step checked since, alongside the ones each reset cleared.
+    setCompleted((current) => {
+      const next = { ...current };
+      for (const entry of undo.resets) next[entry.runbookId] = Array.from(new Set([...entry.steps, ...(next[entry.runbookId] ?? [])])).sort((x, y) => x - y);
+      return next;
+    });
+    const last = undo.resets[undo.resets.length - 1];
+    setRunbookId(last.runbookId);
+    setStepIndex(last.stepIndex);
     setUndo(null);
     setToastFocused(false);
-    setAnnouncement("Runbook restored.");
+    setAnnouncement(undo.resets.length > 1 ? `${undo.resets.length} runbooks restored.` : "Runbook restored.");
     focusResetNext.current = true;
   }
   function dismiss() {
@@ -181,7 +191,7 @@ export default function Home() {
           onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setToastFocused(false); }}
           onKeyDown={(event) => { if (event.key === "Escape") dismiss(); }}
         >
-          <span>{findRunbook(undo.runbookId).name} reset</span>
+          <span>{undoLabel(undo.resets)}</span>
           <button ref={undoRef} type="button" className="as-plain" onClick={restore}>Undo</button>
         </div>
       ) : null}

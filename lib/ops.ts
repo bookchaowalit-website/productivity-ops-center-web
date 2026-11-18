@@ -28,14 +28,13 @@ export function findRunbook(id: string): Runbook {
   return runbooks.find((item) => item.id === id) ?? runbooks[0];
 }
 
-// Check the focused step, keep the list sorted and unique, and move focus to the next step if there is one.
+// Check the focused step, keep the list sorted and unique, and move focus to the next open step after it,
+// if there is one (an already-checked step is skipped); otherwise focus stays put.
 export function checkStep(completed: Completed, runbook: Runbook, stepIndex: number): { completed: Completed; stepIndex: number } {
   const finished = completed[runbook.id] ?? [];
   const next = Array.from(new Set([...finished, stepIndex])).sort((x, y) => x - y);
-  return {
-    completed: { ...completed, [runbook.id]: next },
-    stepIndex: stepIndex < runbook.steps.length - 1 ? stepIndex + 1 : stepIndex,
-  };
+  const open = runbook.steps.findIndex((_, index) => index > stepIndex && !next.includes(index));
+  return { completed: { ...completed, [runbook.id]: next }, stepIndex: open === -1 ? stepIndex : open };
 }
 
 export function resetRunbook(completed: Completed, runbook: Runbook): Completed {
