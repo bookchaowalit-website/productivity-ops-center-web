@@ -43,7 +43,7 @@ describe("resetRunbook and statusLabel", () => {
   });
 
   it("is clear to close only when every step is checked", () => {
-    expect(statusLabel(3, 4)).toBe("IN PROGRESS");
-    expect(statusLabel(4, 4)).toBe("CLEAR TO CLOSE");
+    expect(statusLabel(3, 4)).toBe("In progress");
+    expect(statusLabel(4, 4)).toBe("Clear to close");
   });
 });

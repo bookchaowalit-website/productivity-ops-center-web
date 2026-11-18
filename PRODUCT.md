@@ -14,15 +14,17 @@ A portfolio visitor who wants to see a calm procedure UI: one runbook, one focus
 
 ## What works today
 
-1. Choose one of three runbooks; the rail shows how many steps of each are checked.
+1. Choose one of three runbooks; the sidebar (a row of pills on phones) shows how many steps of each are checked.
 2. Focus any step to read its instruction; "Check and move on" checks it and focuses the next step.
-3. The status panel shows "IN PROGRESS" until every step is checked, then "CLEAR TO CLOSE". Reset clears one runbook.
-4. Front-end and server errors go to Sentry (errors only, personal data stripped) when `NEXT_PUBLIC_SENTRY_DSN` is set.
+3. The status card shows "In progress" until every step is checked, then "Clear to close". "Reset runbook" clears one
+   runbook and offers Undo for 8 seconds.
+4. A "Sample data" notice sits under the title at every width, so phone visitors also see that nothing is live.
+5. Front-end and server errors go to Sentry (errors only, personal data stripped) when `NEXT_PUBLIC_SENTRY_DSN` is set.
 
 ## What does not work (and must not be claimed)
 
 - No 45+ domain operation, workflow automation, monitoring or live connection (claims removed from the portfolio
-  card in the 2026-10 review). The clock, owners and cadences are fixed sample copy.
+  card in the 2026-10 review). The owners and cadences are fixed sample copy (the fake clock was removed on 2026-11-18).
 - No storage, account or sync; checks are lost on reload. No API route. No product analytics.
 
 ## Live URL and deploy state

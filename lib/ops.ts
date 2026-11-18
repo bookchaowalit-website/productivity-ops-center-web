@@ -12,7 +12,7 @@ export const runbooks: Runbook[] = [
   ] },
   { id: "content", code: "RB-12", name: "Content handoff", owner: "Book Content", cadence: "Tuesday / 10:30", tone: "make the source easy to trust", steps: [
     { label: "Check the source", instruction: "Confirm the draft has one source link, one owner, and one clear audience.", duration: "05 min" },
-    { label: "Cut the throat", instruction: "Remove the first sentence if the second sentence says the useful thing more directly.", duration: "07 min" },
+    { label: "Cut the throat-clearing", instruction: "Remove the first sentence if the second sentence says the useful thing more directly.", duration: "07 min" },
     { label: "Package the handoff", instruction: "Add the title, format, destination, and a single next action to the delivery note.", duration: "08 min" },
   ] },
   { id: "review", code: "RB-19", name: "Weekly review", owner: "Solo Empire", cadence: "Monday / first hour", tone: "notice the system before it shouts", steps: [
@@ -43,5 +43,5 @@ export function resetRunbook(completed: Completed, runbook: Runbook): Completed 
 }
 
 export function statusLabel(checked: number, total: number): string {
-  return checked >= total ? "CLEAR TO CLOSE" : "IN PROGRESS";
+  return checked >= total ? "Clear to close" : "In progress";
 }
