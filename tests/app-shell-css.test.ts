@@ -19,4 +19,9 @@ describe("review 2026-11-18 (app shell CSS)", () => {
   it("muted text uses #636366 in light mode for headroom over 4.5:1", () => {
     expect(css).toContain("--as-muted: #636366;");
   });
+  it("the Undo toast sizes from its text and wraps it, never cutting it off on phones", () => {
+    expect(css).toContain(".as-toast { width: max-content; border-radius: 22px; }");
+    expect(css).toMatch(/\.as-toast span \{ min-width: 0; overflow-wrap: anywhere;/);
+    expect(css).not.toMatch(/\.as-toast span \{[^}]*text-overflow: ellipsis/);
+  });
 });

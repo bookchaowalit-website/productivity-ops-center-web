@@ -128,7 +128,10 @@
 
 /* Undo toast */
 .as-toast { position: fixed; left: 50%; bottom: 24px; z-index: 40; display: flex; max-width: calc(100vw - 32px); align-items: center; gap: 8px; padding: 4px 4px 4px 16px; border-radius: 980px; background: var(--as-toast-bg); color: var(--as-toast-fg); border: 1px solid var(--as-toast-line); box-shadow: 0 8px 24px rgb(0 0 0 / 20%); font-size: 15px; transform: translateX(-50%); }
-.as-toast span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* width: max-content sizes the toast from its text, not from the right half of the screen that left: 50% leaves
+   before the transform; within max-width the text wraps instead of being cut (e.g. "Release checklist reset" at 320px). */
+.as-toast { width: max-content; border-radius: 22px; }
+.as-toast span { min-width: 0; overflow-wrap: anywhere; line-height: 1.35; }
 .as-toast .as-plain { flex: none; color: var(--as-toast-action); }
 
 .as-note { margin: 16px 0 0; color: var(--as-muted); font-size: 14px; line-height: 1.6; }
