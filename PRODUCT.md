@@ -39,6 +39,11 @@ A portfolio visitor who wants to see a calm procedure UI: one runbook, one focus
 - `NEXT_PUBLIC_SENTRY_DSN` is set on the Vercel project (Sentry project `productivity-ops-center-web`, org `personal-yu0`); it takes effect
   with that next deploy.
 
+## Known limits
+
+- Two tabs ticking steps at the same moment can overwrite each other: each tab reads the saved checks, then writes the whole set, so the later write wins (localStorage has no cross-tab transaction).
+- When another tab ticks the step this tab is showing, this tab updates its counts but stays on that step (primary button reads "Step checked"); pick the next step or switch runbooks to move on.
+
 ## Boundaries
 
 - Browser-only. Synthetic workflows, owners and timestamps only; not an infrastructure console.
