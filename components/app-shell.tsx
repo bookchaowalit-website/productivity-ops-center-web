@@ -11,10 +11,11 @@ export const PlusIcon = () => (
 
 export type Tone = "green" | "amber" | "grey" | "red";
 
-export function AppTop({ name, tagline }: { name: string; tagline: string }) {
+/** `href` makes the app name a link back to the app's home. */
+export function AppTop({ name, tagline, href }: { name: string; tagline: string; href?: string }) {
   return (
     <header className="as-top">
-      <div className="as-brand">{name}<small>{tagline}</small></div>
+      {href ? <a className="as-brand" href={href}>{name}<small>{tagline}</small></a> : <div className="as-brand">{name}<small>{tagline}</small></div>}
       <nav aria-label="Site">
         <a href="https://bookchaowalit.com/">Bookchaowalit</a>
       </nav>
@@ -34,10 +35,11 @@ export function AppFoot({ source }: { source: string }) {
 }
 
 /** One entry in the sidebar list of lists. */
-export function ListButton({ label, count, tone, current, onSelect }: { label: string; count: ReactNode; tone?: Tone; current: boolean; onSelect: () => void }) {
+/** `pressed`: the lists switch state in place (toggle buttons), so mark the chosen one with aria-pressed instead of aria-current. */
+export function ListButton({ label, count, tone, current, pressed, onSelect }: { label: string; count: ReactNode; tone?: Tone; current: boolean; pressed?: boolean; onSelect: () => void }) {
   return (
     <li>
-      <button type="button" aria-current={current ? "true" : undefined} onClick={onSelect}>
+      <button type="button" aria-current={!pressed && current ? "true" : undefined} aria-pressed={pressed ? current : undefined} onClick={onSelect}>
         <span>{tone ? <span className="as-dot" data-tone={tone} aria-hidden="true" /> : null}{label}</span>
         <span className="as-count">{count}</span>
       </button>

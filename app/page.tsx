@@ -1,10 +1,10 @@
 "use client";
 
-import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { type MouseEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { flushSync } from "react-dom";
 import { AppFoot, AppTop, ListButton, Pill } from "@/components/app-shell";
 import { StepList } from "@/components/runbook";
-import { type Completed, checkStep, findRunbook, resetRunbook as clearRunbook, restoredStep, runbooks, statusLabel } from "@/lib/ops";
+import { type Completed, checkStep, checksStore, findRunbook, resetRunbook as clearRunbook, restoredStep, runbooks, statusLabel } from "@/lib/ops";
 
 const SOURCE = "https://github.com/bookchaowalit-website/productivity-ops-center-web";
 
@@ -21,7 +21,9 @@ function undoLabel(resets: ResetEntry[]): string {
 export default function Home() {
   const [runbookId, setRunbookId] = useState("release");
   const [stepIndex, setStepIndex] = useState(0);
-  const [completed, setCompleted] = useState<Completed>({});
+  // Saved in this browser (server render and hydration start empty, then the saved checks appear).
+  const completed = useSyncExternalStore(checksStore.subscribe, checksStore.getSnapshot, checksStore.getServerSnapshot);
+  const setCompleted = (next: Completed) => checksStore.update(() => next);
   const [undo, setUndo] = useState<UndoState | null>(null);
   const [toastFocused, setToastFocused] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -56,7 +58,8 @@ export default function Home() {
     return () => window.clearTimeout(timer);
   }, [undo, toastFocused]);
 
-  function chooseRunbook(id: string) { setRunbookId(id); setStepIndex(0); }
+  // Land on the first open step (saved checks can already cover step 1).
+  function chooseRunbook(id: string) { setRunbookId(id); setStepIndex(restoredStep(completed[id] ?? [], findRunbook(id), 0)); }
   // A step row was chosen directly: the card sits above the list, so bring it to the person. The title
   // element stays mounted across steps, so focus and scroll right here, even when the row was already selected.
   function chooseStep(index: number) {
@@ -111,9 +114,10 @@ export default function Home() {
   return (
     <div className="as">
       <a className="as-skip" href="#procedure">Skip to the procedure</a>
-      <AppTop name="Ops Center" tagline="Runbook control room" />
+      <AppTop name="Ops Center" tagline="Runbook control room" href="/" />
       <div className="as-body">
-        <nav className="as-side" aria-label="Runbooks">
+        {/* Buttons that switch the runbook in place, not links: a labelled section, not a second navigation landmark. */}
+        <section className="as-side" aria-label="Runbooks">
           <h2>Runbooks</h2>
           <ul className="as-lists">
             {runbooks.map((item) => {
@@ -125,19 +129,20 @@ export default function Home() {
                   tone={count && count >= item.steps.length ? "green" : undefined}
                   count={<>{count}/{item.steps.length}<span className="as-sr"> steps checked</span></>}
                   current={item.id === runbook.id}
+                  pressed
                   onSelect={() => chooseRunbook(item.id)}
                 />
               );
             })}
           </ul>
           <p className="as-side-note"><strong>Rule of the room</strong>One checked action is more useful than a complete-looking dashboard.</p>
-        </nav>
+        </section>
 
         <main className="as-main" id="procedure">
           <div className="as-head">
             <div>
               <p className="as-eyebrow">{runbook.code} · {runbook.owner} · {runbook.cadence}</p>
-              <h1>{runbook.name}</h1>
+              <h1><span className="as-sr">Ops Center: </span>{runbook.name}</h1>
               <p>{runbook.tone[0].toUpperCase() + runbook.tone.slice(1)}.</p>
               <p className="as-notice"><Pill tone="amber">Sample data</Pill>Synthetic study runbooks. No live connection to any service.</p>
             </div>
@@ -190,11 +195,11 @@ export default function Home() {
             <dl className="as-facts">
               <div><dt>Owner</dt><dd>{runbook.owner}</dd></div>
               <div><dt>Cadence</dt><dd>{runbook.cadence}</dd></div>
-              <div><dt>Data</dt><dd>Illustrative only, kept in this tab</dd></div>
+              <div><dt>Data</dt><dd>Illustrative only, saved in this browser</dd></div>
             </dl>
           </section>
 
-          <p className="as-note">Nothing here pings a service; it only makes the next decision legible. Checks live in this tab and clear on reload.</p>
+          <p className="as-note">Nothing here pings a service; it only makes the next decision legible. Checks are saved in this browser only, with no account or sync. Reset runbook clears them.</p>
         </main>
       </div>
       <AppFoot source={SOURCE} />

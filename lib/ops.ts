@@ -1,4 +1,5 @@
 // Runbook data and pure state helpers shared by the page. Three synthetic runbooks; nothing pings a service.
+import { browserStorage, createLocalStore } from "@/lib/local-store";
 
 export type Step = { label: string; instruction: string; duration: string };
 export type Runbook = { id: string; code: string; name: string; owner: string; cadence: string; tone: string; steps: Step[] };
@@ -58,3 +59,34 @@ export function resetRunbook(completed: Completed, runbook: Runbook): Completed 
 export function statusLabel(checked: number, total: number): string {
   return checked >= total ? "Clear to close" : "In progress";
 }
+
+export const CHECKS_KEY = "ops-center-checks-v1";
+
+/** Saved checks, or null when nothing usable is saved. Unknown runbooks and out-of-range steps are dropped. */
+export function parseCompleted(raw: string | null): Completed | null {
+  if (!raw) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+    const out: Completed = {};
+    for (const runbook of runbooks) {
+      const steps = (value as Record<string, unknown>)[runbook.id];
+      if (!Array.isArray(steps)) continue;
+      out[runbook.id] = Array.from(new Set(steps.filter((n): n is number => Number.isInteger(n) && n >= 0 && n < runbook.steps.length))).sort((x, y) => x - y);
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+
+export const NO_CHECKS: Completed = {};
+
+/** Checks kept in this browser, so a reload does not lose them; Reset runbook still clears them (with Undo). */
+export const checksStore = createLocalStore<Completed>({
+  key: CHECKS_KEY,
+  fallback: NO_CHECKS,
+  parse: parseCompleted,
+  serialize: (value) => JSON.stringify(value),
+  getStorage: browserStorage,
+});

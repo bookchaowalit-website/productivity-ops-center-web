@@ -25,7 +25,7 @@ A portfolio visitor who wants to see a calm procedure UI: one runbook, one focus
 
 - No 45+ domain operation, workflow automation, monitoring or live connection (claims removed from the portfolio
   card in the 2026-10 review). The owners and cadences are fixed sample copy (the fake clock was removed on 2026-11-18).
-- No storage, account or sync; checks are lost on reload. No API route. No product analytics.
+- No account or sync: checks are saved in this browser's localStorage only (since 2026-11-19; before that they were lost on reload). No API route. No product analytics.
 
 ## Live URL and deploy state
 

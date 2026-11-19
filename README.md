@@ -1,8 +1,8 @@
 # Ops Center — Runbook Control Room
 
 A client-only runbook checklist: three hard-coded sample runbooks (release, content handoff, weekly review). Pick a
-runbook, focus a step to read its instruction, check steps off and reset (with Undo). Checks live in React state only
-and are lost on reload. The page uses the shared App shell look (light and dark, Geist via `next/font`); see
+runbook, focus a step to read its instruction, check steps off and reset (with Undo). Checks are saved in this browser's
+localStorage (`ops-center-checks-v1`), so a reload keeps them; Reset runbook clears them. The page uses the shared App shell look (light and dark, Geist via `next/font`); see
 `APP-SHELL.md` and `DESIGN.md`.
 
 Live: https://ops.bookchaowalit.com (Vercel builds every push to `main`, see `PRODUCT.md`).
@@ -11,7 +11,7 @@ Live: https://ops.bookchaowalit.com (Vercel builds every push to `main`, see `PR
 
 - No live monitoring, automation, alerts, incident access or service connection. The owners and cadences are fixed
   sample copy.
-- No account, storage or sync; nothing survives a reload.
+- No account or sync; checks are saved in this browser only.
 
 ## Run
 

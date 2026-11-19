@@ -22,6 +22,7 @@ const pills = () => [...host.querySelectorAll(".as-step .as-pill")].map((p) => p
 const count = (name: string) => button(name, $(".as-side")!).querySelector(".as-count")!.textContent;
 
 beforeEach(() => {
+  localStorage.clear();
   host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -36,9 +37,9 @@ afterEach(() => {
 describe("choosing a runbook", () => {
   it("switches the procedure, marks the current list and starts on step 1", () => {
     press(button("Content handoff", $(".as-side")!));
-    expect($("h1")!.textContent).toBe("Content handoff");
-    expect(button("Content handoff", $(".as-side")!).getAttribute("aria-current")).toBe("true");
-    expect(button("Release checklist", $(".as-side")!).getAttribute("aria-current")).toBeNull();
+    expect($("h1")!.textContent).toBe("Ops Center: Content handoff");
+    expect(button("Content handoff", $(".as-side")!).getAttribute("aria-pressed")).toBe("true");
+    expect(button("Release checklist", $(".as-side")!).getAttribute("aria-pressed")).toBe("false");
     expect($("#focus-title")!.textContent).toBe("Check the source");
     expect(host.textContent).toContain("Cut the throat-clearing");
     expect(host.textContent).toContain("Step 1 of 3");
@@ -100,7 +101,7 @@ describe("reset and undo", () => {
     press(reset());
     press(button("Weekly review", $(".as-side")!));
     press(button("Undo"));
-    expect($("h1")!.textContent).toBe("Release checklist");
+    expect($("h1")!.textContent).toBe("Ops Center: Release checklist");
     expect(pills()[0]).toBe("Checked");
   });
 
@@ -213,7 +214,7 @@ describe("review fixes, round 2", () => {
     press(button("Undo"));
     expect(count("Release checklist")).toBe("1/4 steps checked");
     expect(count("Weekly review")).toBe("2/3 steps checked");
-    expect($("h1")!.textContent).toBe("Weekly review");
+    expect($("h1")!.textContent).toBe("Ops Center: Weekly review");
     expect(host.textContent).toContain("2 runbooks restored.");
   });
 
@@ -321,5 +322,36 @@ describe("StepList", () => {
   it("shows an empty state when a runbook has no steps", () => {
     const html = renderToString(<StepList steps={[]} finished={[]} focused={0} onFocus={() => {}} />);
     expect(html).toContain("No steps yet");
+  });
+});
+
+describe("review 2026-11-18", () => {
+  it("checks survive a reload (saved in this browser) and Reset runbook clears them", () => {
+    press(primary());
+    press(primary());
+    expect(JSON.parse(localStorage.getItem("ops-center-checks-v1")!)).toEqual({ release: [0, 1] });
+    act(() => root.unmount());
+    root = createRoot(host);
+    act(() => root.render(<Home />));
+    expect(count("Release checklist")).toBe("2/4 steps checked");
+    press(reset());
+    expect(JSON.parse(localStorage.getItem("ops-center-checks-v1")!)).toEqual({ release: [] });
+  });
+
+  it("switching to a runbook lands on its first open step", () => {
+    localStorage.setItem("ops-center-checks-v1", JSON.stringify({ content: [0] }));
+    act(() => root.unmount());
+    root = createRoot(host);
+    act(() => root.render(<Home />));
+    press(button("Content handoff", $(".as-side")!));
+    expect($("#focus-title")!.textContent).toBe("Cut the throat-clearing");
+  });
+
+  it("the brand links home; the runbook switcher is a labelled section with toggle buttons, not a nav", () => {
+    expect($<HTMLAnchorElement>("a.as-brand")!.getAttribute("href")).toBe("/");
+    expect(host.querySelectorAll("nav")).toHaveLength(1);
+    expect($('section.as-side[aria-label="Runbooks"]')).not.toBeNull();
+    expect([...host.querySelectorAll(".as-side .as-lists button")].map((b) => b.getAttribute("aria-pressed"))).toEqual(["true", "false", "false"]);
+    expect($(".as-side .as-lists button[aria-current]")).toBeNull();
   });
 });

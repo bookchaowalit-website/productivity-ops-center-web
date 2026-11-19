@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkStep, findRunbook, nextOpenStep, resetRunbook, restoredStep, runbooks, statusLabel } from "@/lib/ops";
+import { checkStep, parseCompleted, findRunbook, nextOpenStep, resetRunbook, restoredStep, runbooks, statusLabel } from "@/lib/ops";
 
 const release = findRunbook("release");
 
@@ -70,5 +70,17 @@ describe("restoredStep", () => {
   it("stays put when every step is checked", () => {
     expect(restoredStep([0, 1, 2, 3], release, 2)).toBe(2);
     expect(nextOpenStep([0, 1, 2, 3], release, 2)).toBe(2);
+  });
+});
+
+describe("parseCompleted", () => {
+  it("keeps known runbooks and valid step indexes, sorted and unique", () => {
+    expect(parseCompleted(JSON.stringify({ release: [2, 0, 2, 9, -1, 1.5, "x"], ghost: [0], review: "no" }))).toEqual({ release: [0, 2] });
+  });
+  it("returns null for nothing or a bad shape", () => {
+    expect(parseCompleted(null)).toBeNull();
+    expect(parseCompleted("{")).toBeNull();
+    expect(parseCompleted("[]")).toBeNull();
+    expect(parseCompleted("null")).toBeNull();
   });
 });
