@@ -27,13 +27,17 @@ export default function Home() {
   // from the render's `completed`, so a check, Reset or Undo here cannot overwrite progress saved elsewhere.
   function saveFromLatest<R>(change: (latest: Completed) => { completed: Completed; result: R }): R {
     let result!: R;
-    checksStore.update((latest) => {
+    const saved = checksStore.update((latest) => {
       const next = change(latest);
       result = next.result;
       return next.completed;
     });
+    // A refused write (storage blocked or full) keeps the change for this visit only: say so where the person
+    // is working, instead of the usual "saved in this browser". The next write that saves clears it.
+    setSaveFailed(!saved);
     return result;
   }
+  const [saveFailed, setSaveFailed] = useState(false);
   // Saved checks arrive after hydration (or from another tab after a clear): land on the first open step
   // then, as switching runbooks does, so the primary button is not stuck on "Step checked".
   const [landedOn, setLandedOn] = useState<Completed>(checksStore.getServerSnapshot);
@@ -185,6 +189,7 @@ export default function Home() {
                   </button>
                   <button ref={resetRef} type="button" className="as-plain as-danger" onClick={resetRunbook} disabled={finished.length === 0}>Reset runbook</button>
                 </div>
+                {saveFailed ? <p className="as-notice" role="alert">Could not save in this browser (storage is blocked or full). These checks last until you reload or close the page.</p> : null}
                 {/* In the DOM right after the buttons (shown fixed at the bottom), so Tab from Undo goes on to the steps. */}
                 {undo ? (
                   <div

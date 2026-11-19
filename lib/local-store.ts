@@ -37,8 +37,10 @@ export function createLocalStore<T>(options: {
     return current;
   }
 
-  function update(change: (value: T) => T) {
+  /** Returns whether the change reached storage; false means it lives in memory for this visit only. */
+  function update(change: (value: T) => T): boolean {
     current = change(getSnapshot());
+    let saved = false;
     try {
       const raw = serialize(current);
       const storage = getStorage();
@@ -47,11 +49,13 @@ export function createLocalStore<T>(options: {
       if (storage) {
         storage.setItem(key, raw);
         lastRaw = raw;
+        saved = true;
       }
     } catch {
       // Storage is full or blocked: keep the value in memory.
     }
     for (const listener of listeners) listener();
+    return saved;
   }
 
   function subscribe(listener: () => void) {

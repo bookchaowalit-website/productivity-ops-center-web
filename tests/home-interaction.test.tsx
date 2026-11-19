@@ -400,3 +400,15 @@ describe("deferred review 2026-11-19", () => {
     expect(primary().disabled).toBe(false);
   });
 });
+
+describe("storage refused (Codex 2026-11-19)", () => {
+  it("shows a visible notice when a check could not be saved, and clears it once a save works again", () => {
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("QuotaExceededError"); });
+    press(button("Check and move on"));
+    const notice = host.querySelector('.as-notice[role="alert"]');
+    expect(notice?.textContent).toBe("Could not save in this browser (storage is blocked or full). These checks last until you reload or close the page.");
+    setItem.mockRestore();
+    press(button("Check and move on"));
+    expect(host.querySelector('.as-notice[role="alert"]')).toBeNull();
+  });
+});

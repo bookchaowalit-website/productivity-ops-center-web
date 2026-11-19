@@ -86,4 +86,13 @@ describe("createLocalStore without storage", () => {
     s.update((value) => [...value, 6]);
     expect(s.getSnapshot()).toEqual([4, 5, 6]);
   });
+
+  it("update says whether the change reached storage", () => {
+    expect(store(fakeStorage()).update(() => [1])).toBe(true);
+    const full: StorageLike = { getItem: () => null, setItem: () => { throw new Error("QuotaExceededError"); } };
+    const s = store(full);
+    expect(s.update(() => [2])).toBe(false);
+    expect(s.getSnapshot()).toEqual([2]); // kept in memory for the visit
+    expect(store(undefined).update(() => [3])).toBe(false);
+  });
 });
