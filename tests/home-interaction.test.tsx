@@ -355,3 +355,48 @@ describe("review 2026-11-18", () => {
     expect($(".as-side .as-lists button[aria-current]")).toBeNull();
   });
 });
+
+describe("deferred review 2026-11-19", () => {
+  const KEY = "ops-center-checks-v1";
+  const saved = () => JSON.parse(localStorage.getItem(KEY)!);
+  const remount = () => {
+    act(() => root.unmount());
+    root = createRoot(host);
+    act(() => root.render(<Home />));
+  };
+
+  it("a check saves on top of progress another tab saved since this render (no lost update)", () => {
+    // Another tab saves Content progress; this tab has not re-rendered (no storage event yet).
+    localStorage.setItem(KEY, JSON.stringify({ content: [0] }));
+    press(primary()); // check Release step 1 here
+    expect(saved()).toEqual({ content: [0], release: [0] });
+  });
+
+  it("Reset and Undo also start from the latest saved checks", () => {
+    press(primary());
+    localStorage.setItem(KEY, JSON.stringify({ release: [0, 1], content: [0] })); // other tab: one more Release step, and Content
+    press(reset(), 1);
+    expect(saved()).toEqual({ release: [], content: [0] });
+    localStorage.setItem(KEY, JSON.stringify({ release: [], content: [0, 1] })); // other tab works on while Undo is open
+    press(button("Undo"));
+    expect(saved()).toEqual({ release: [0, 1], content: [0, 1] }); // the reset's own steps come back, the rest is kept
+  });
+
+  it("after a reload, the card opens on the first unfinished step with a working primary button", () => {
+    press(primary());
+    remount();
+    expect($("#focus-title")!.textContent).toBe(findRunbook("release").steps[1].label);
+    expect(primary().disabled).toBe(false);
+    expect(primary().textContent).toBe("Check and move on");
+  });
+
+  it("after hydration of the server HTML, saved checks also move the card to the first open step", async () => {
+    const { hydrateRoot } = await import("react-dom/client");
+    act(() => root.unmount());
+    localStorage.setItem(KEY, JSON.stringify({ release: [0, 1] }));
+    host.innerHTML = renderToString(<Home />);
+    act(() => { root = hydrateRoot(host, <Home />); });
+    expect($("#focus-title")!.textContent).toBe(findRunbook("release").steps[2].label);
+    expect(primary().disabled).toBe(false);
+  });
+});

@@ -41,8 +41,13 @@ export function createLocalStore<T>(options: {
     current = change(getSnapshot());
     try {
       const raw = serialize(current);
-      getStorage()?.setItem(key, raw);
-      lastRaw = raw;
+      const storage = getStorage();
+      // Only a value that really reached storage counts as saved; with no storage it lives in memory, and
+      // a later read of null must not be mistaken for "cleared elsewhere".
+      if (storage) {
+        storage.setItem(key, raw);
+        lastRaw = raw;
+      }
     } catch {
       // Storage is full or blocked: keep the value in memory.
     }

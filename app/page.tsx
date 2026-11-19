@@ -23,7 +23,20 @@ export default function Home() {
   const [stepIndex, setStepIndex] = useState(0);
   // Saved in this browser (server render and hydration start empty, then the saved checks appear).
   const completed = useSyncExternalStore(checksStore.subscribe, checksStore.getSnapshot, checksStore.getServerSnapshot);
-  const setCompleted = (next: Completed) => checksStore.update(() => next);
+  // Every write starts from the latest saved checks (another tab may have saved since this render), never
+  // from the render's `completed`, so a check, Reset or Undo here cannot overwrite progress saved elsewhere.
+  function saveFromLatest<R>(change: (latest: Completed) => { completed: Completed; result: R }): R {
+    let result!: R;
+    checksStore.update((latest) => {
+      const next = change(latest);
+      result = next.result;
+      return next.completed;
+    });
+    return result;
+  }
+  // Saved checks arrive after hydration (or from another tab after a clear): land on the first open step
+  // then, as switching runbooks does, so the primary button is not stuck on "Step checked".
+  const [landedOn, setLandedOn] = useState<Completed>(checksStore.getServerSnapshot);
   const [undo, setUndo] = useState<UndoState | null>(null);
   const [toastFocused, setToastFocused] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -35,6 +48,13 @@ export default function Home() {
   const focusTitleRef = useRef<HTMLHeadingElement>(null);
 
   const runbook = findRunbook(runbookId);
+  if (landedOn !== completed) {
+    setLandedOn(completed);
+    if (landedOn === checksStore.getServerSnapshot()) {
+      const open = restoredStep(completed[runbook.id] ?? [], runbook, stepIndex);
+      if (open !== stepIndex) setStepIndex(open);
+    }
+  }
   const finished = completed[runbook.id] ?? [];
   const total = runbook.steps.length;
   const step = runbook.steps[stepIndex] ?? runbook.steps[0];
@@ -72,8 +92,10 @@ export default function Home() {
     title.closest("section")?.scrollIntoView?.({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
   }
   function markNext() {
-    const next = checkStep(completed, runbook, stepIndex);
-    setCompleted(next.completed);
+    const next = saveFromLatest((latest) => {
+      const checked = checkStep(latest, runbook, stepIndex);
+      return { completed: checked.completed, result: checked };
+    });
     setStepIndex(next.stepIndex);
     const left = total - (next.completed[runbook.id]?.length ?? 0);
     // checkStep always moves to an open step while one is left, so "Next" is always true here.
@@ -81,18 +103,21 @@ export default function Home() {
   }
   function resetRunbook(event: MouseEvent<HTMLButtonElement>) {
     // detail is 0 for a click synthesised from Enter or Space, at least 1 for a mouse or touch click.
-    const entry = { runbookId: runbook.id, steps: finished, stepIndex };
+    const steps = saveFromLatest((latest) => ({ completed: clearRunbook(latest, runbook), result: latest[runbook.id] ?? [] }));
+    const entry = { runbookId: runbook.id, steps, stepIndex };
     setUndo((current) => ({ resets: [...(current?.resets ?? []), entry], fromKeyboard: event.detail === 0 }));
-    setCompleted(clearRunbook(completed, runbook));
     setStepIndex(0);
     setAnnouncement(`${runbook.name} reset. Undo is available for a few seconds.`);
   }
   function restore() {
     if (!undo) return;
     // Undo reverses only the resets: keep any step checked since, alongside the ones each reset cleared.
-    const next = { ...completed };
-    for (const entry of undo.resets) next[entry.runbookId] = Array.from(new Set([...entry.steps, ...(next[entry.runbookId] ?? [])])).sort((x, y) => x - y);
-    setCompleted(next);
+    const { resets } = undo;
+    const next = saveFromLatest((latest) => {
+      const merged = { ...latest };
+      for (const entry of resets) merged[entry.runbookId] = Array.from(new Set([...entry.steps, ...(merged[entry.runbookId] ?? [])])).sort((x, y) => x - y);
+      return { completed: merged, result: merged };
+    });
     const last = undo.resets[undo.resets.length - 1];
     setRunbookId(last.runbookId);
     // The saved step may have been checked after the reset; land on an open step instead.

@@ -77,3 +77,13 @@ describe("createLocalStore after the key is cleared elsewhere", () => {
     expect(memory.getSnapshot()).toEqual([7]);
   });
 });
+
+describe("createLocalStore without storage", () => {
+  it("keeps an updated value in memory when there is no storage at all", () => {
+    const s = store(undefined);
+    s.update(() => [4, 5]);
+    expect(s.getSnapshot()).toEqual([4, 5]); // not mistaken for "cleared elsewhere"
+    s.update((value) => [...value, 6]);
+    expect(s.getSnapshot()).toEqual([4, 5, 6]);
+  });
+});
