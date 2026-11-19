@@ -43,6 +43,8 @@ A portfolio visitor who wants to see a calm procedure UI: one runbook, one focus
 
 - Two tabs ticking steps at the same moment can overwrite each other: each tab reads the saved checks, then writes the whole set, so the later write wins (localStorage has no cross-tab transaction).
 - When another tab ticks the step this tab is showing, this tab updates its counts but stays on that step (primary button reads "Step checked"); pick the next step or switch runbooks to move on.
+- With storage full or blocked, checks made here live in memory only (a notice says so); if another tab then saves, this tab redraws from that save and the unsaved checks are lost.
+- Selecting a step scrolls its card into view with "nearest"; on a short window or when zoomed, a card taller than the screen can leave the focused step title above the visible area or under the top bar.
 
 ## Boundaries
 
