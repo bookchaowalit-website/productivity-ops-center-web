@@ -24,4 +24,14 @@ describe("review 2026-11-18 (app shell CSS)", () => {
     expect(css).toMatch(/\.as-toast span \{ min-width: 0; overflow-wrap: anywhere;/);
     expect(css).not.toMatch(/\.as-toast span \{[^}]*text-overflow: ellipsis/);
   });
+  it("at 320px with 200% text the top bar wraps and runbook labels wrap inside their pill", () => {
+    const tail = css.slice(css.indexOf("/* 320px at 200% text"));
+    expect(tail).toMatch(/\.as-top \{ flex-wrap: wrap; \}/);
+    expect(tail).toMatch(/\.as-lists button \{ max-width: 100%; white-space: normal;/);
+    expect(tail).toMatch(/\.as-lists button > span:first-child \{ min-width: 0; overflow-wrap: anywhere; \}/);
+    expect(tail).toMatch(/\.as-lists \.as-count \{ flex: none; \}/);
+  });
+  it("footer links are at least 44px wide as well as tall", () => {
+    expect(css).toContain(".as-foot a { min-inline-size: 44px; justify-content: center; }");
+  });
 });

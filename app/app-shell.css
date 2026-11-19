@@ -250,3 +250,14 @@ a.as-brand:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* While the Undo toast shows, keyboard focus scrolling stops above it and the page can scroll its last links clear of it. */
 html:has(.as-toast) { scroll-padding-bottom: 96px; }
 html:has(.as-toast) body { padding-bottom: 96px; }
+/* 320px at 200% text: the Bookchaowalit link drops under the app name instead of scrolling sideways,
+   and a runbook pill wraps its label inside the button so the count stays on screen. */
+.as-top { flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .as-lists li { max-width: 100%; }
+  .as-lists button { max-width: 100%; white-space: normal; text-align: left; }
+  .as-lists button > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .as-lists .as-count { flex: none; }
+}
+/* Short footer links such as Status still get a 44px-wide target. */
+.as-foot a { min-inline-size: 44px; justify-content: center; }
