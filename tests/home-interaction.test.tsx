@@ -411,4 +411,14 @@ describe("storage refused (Codex 2026-11-19)", () => {
     press(button("Check and move on"));
     expect(host.querySelector('.as-notice[role="alert"]')).toBeNull();
   });
+
+  it("drops the notice when another tab's save replaces the unsaved checks on screen", () => {
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("QuotaExceededError"); });
+    press(button("Check and move on"));
+    expect(host.querySelector('.as-notice[role="alert"]')).not.toBeNull();
+    setItem.mockRestore();
+    localStorage.setItem("ops-center-checks-v1", JSON.stringify({ release: [0, 1] })); // another tab saved
+    act(() => { window.dispatchEvent(new StorageEvent("storage", { key: "ops-center-checks-v1" })); });
+    expect(host.querySelector('.as-notice[role="alert"]')).toBeNull();
+  });
 });

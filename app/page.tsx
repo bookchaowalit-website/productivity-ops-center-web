@@ -33,11 +33,12 @@ export default function Home() {
       return next.completed;
     });
     // A refused write (storage blocked or full) keeps the change for this visit only: say so where the person
-    // is working, instead of the usual "saved in this browser". The next write that saves clears it.
-    setSaveFailed(!saved);
+    // is working, instead of the usual "saved in this browser". The notice belongs to that unsaved snapshot:
+    // a later save here, or another tab's save that this tab then shows, makes it go away.
+    setUnsaved(saved ? null : checksStore.getSnapshot());
     return result;
   }
-  const [saveFailed, setSaveFailed] = useState(false);
+  const [unsaved, setUnsaved] = useState<Completed | null>(null);
   // Saved checks arrive after hydration (or from another tab after a clear): land on the first open step
   // then, as switching runbooks does, so the primary button is not stuck on "Step checked".
   const [landedOn, setLandedOn] = useState<Completed>(checksStore.getServerSnapshot);
@@ -189,7 +190,7 @@ export default function Home() {
                   </button>
                   <button ref={resetRef} type="button" className="as-plain as-danger" onClick={resetRunbook} disabled={finished.length === 0}>Reset runbook</button>
                 </div>
-                {saveFailed ? <p className="as-notice" role="alert">Could not save in this browser (storage is blocked or full). These checks last until you reload or close the page.</p> : null}
+                {unsaved !== null && unsaved === completed ? <p className="as-notice" role="alert">Could not save in this browser (storage is blocked or full). These checks last until you reload or close the page.</p> : null}
                 {/* In the DOM right after the buttons (shown fixed at the bottom), so Tab from Undo goes on to the steps. */}
                 {undo ? (
                   <div
