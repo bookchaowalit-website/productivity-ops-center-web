@@ -37,7 +37,8 @@ afterEach(() => {
 describe("choosing a runbook", () => {
   it("switches the procedure, marks the current list and starts on step 1", () => {
     press(button("Content handoff", $(".as-side")!));
-    expect($("h1")!.textContent).toBe("Ops Center: Content handoff");
+    expect($("h1")!.textContent).toBe("Ops Center");
+    expect($(".as-runbook-title")!.textContent).toBe("Content handoff");
     expect(button("Content handoff", $(".as-side")!).getAttribute("aria-pressed")).toBe("true");
     expect(button("Release checklist", $(".as-side")!).getAttribute("aria-pressed")).toBe("false");
     expect($("#focus-title")!.textContent).toBe("Check the source");
@@ -101,7 +102,8 @@ describe("reset and undo", () => {
     press(reset());
     press(button("Weekly review", $(".as-side")!));
     press(button("Undo"));
-    expect($("h1")!.textContent).toBe("Ops Center: Release checklist");
+    expect($("h1")!.textContent).toBe("Ops Center");
+    expect($(".as-runbook-title")!.textContent).toBe("Release checklist");
     expect(pills()[0]).toBe("Checked");
   });
 
@@ -214,7 +216,8 @@ describe("review fixes, round 2", () => {
     press(button("Undo"));
     expect(count("Release checklist")).toBe("1/4 steps checked");
     expect(count("Weekly review")).toBe("2/3 steps checked");
-    expect($("h1")!.textContent).toBe("Ops Center: Weekly review");
+    expect($("h1")!.textContent).toBe("Ops Center");
+    expect($(".as-runbook-title")!.textContent).toBe("Weekly review");
     expect(host.textContent).toContain("2 runbooks restored.");
   });
 
