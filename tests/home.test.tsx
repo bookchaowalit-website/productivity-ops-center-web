@@ -6,7 +6,8 @@ describe("home page", () => {
   it("renders the runbook list, the first procedure and the sample-data notice near the title", () => {
     const html = renderToString(<Home />);
     for (const name of ["Release checklist", "Content handoff", "Weekly review"]) expect(html).toContain(name);
-    expect(html).toContain('<h1><span class="as-sr">Ops Center: </span>Release checklist</h1>');
+    expect(html).toContain("<h1>Ops Center</h1>");
+    expect(html).toContain('<h2 class="as-runbook-title">Release checklist</h2>');
     expect(html).toContain("Scan the changed files and name the one behavior");
     expect(html).toContain("In progress");
     expect(html).toContain("Sample data");

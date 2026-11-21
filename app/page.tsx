@@ -172,7 +172,8 @@ export default function Home() {
           <div className="as-head">
             <div>
               <p className="as-eyebrow">{runbook.code} · {runbook.owner} · {runbook.cadence}</p>
-              <h1><span className="as-sr">Ops Center: </span>{runbook.name}</h1>
+              <h1>Ops Center</h1>
+              <h2 className="as-runbook-title">{runbook.name}</h2>
               <p>{runbook.tone[0].toUpperCase() + runbook.tone.slice(1)}.</p>
               <p className="as-notice"><Pill tone="amber">Sample data</Pill>Synthetic study runbooks. No live connection to any service.</p>
             </div>
